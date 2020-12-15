@@ -6,6 +6,7 @@ Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 特にありません。
 
 ※キーボードは USB 接続のものが使えます。  
+※USB Type-C の変換コネクタはダイソーにあります。  
 ※ブザーは Wio Terminal のものを使います。  
 ※LED は Wio Terminal のものを使います。  
 ※ボタンや 5 方向スイッチも認識します。  
