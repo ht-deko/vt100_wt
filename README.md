@@ -23,7 +23,7 @@ Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 ```
 
  ## 使い方
- キーボードを接続し、Wio Terminal (SAMD) と通信相手をつなぎます。
+ USB キーボードを Wio Terminal の Type-C コネクタに接続し、背面の GPIO ソケットで通信相手とつなぎます。
 
 | COM | Wio Terminal (SAMD) |
 |:--------|:------------------|
