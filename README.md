@@ -2,7 +2,7 @@
 
 Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 
-![image](https://user-images.githubusercontent.com/14885863/102246117-bc545680-3f41-11eb-98af-41a4710ab4a4.png)
+![image](https://user-images.githubusercontent.com/14885863/102246470-2967ec00-3f42-11eb-9473-d38e3aeaa6e6.png)
 
 ## 必要なハードウェア
 特にありません。
