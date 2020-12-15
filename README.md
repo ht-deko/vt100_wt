@@ -21,3 +21,31 @@ Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 ```cpp:RingBuffer.h
 # define SERIAL_BUFFER_SIZE 512
 ```
+
+ ## 使い方
+ キーボードを接続し、Wio Terminal (SAMD) と通信相手をつなぎます。
+
+| COM | Wio Terminal (SAMD) |
+|:--------|:------------------|
+| TXD| RXD0 |
+| RXD| TXD0 |
+| GND| GND|
+
+[RunCPM](https://github.com/MockbaTheBorg/RunCPM) や [CP/M 8266](https://github.com/SmallRoomLabs/cpm8266) と接続してみました。
+
+ ![image](https://user-images.githubusercontent.com/14885863/102247268-14d82380-3f43-11eb-9e77-a9cc465f63db.png)
+ 
+※ この VT100 エミュレータの通信速度は 9600 bps、画面サイズは 53 x 30 です。 
+
+## VT100 の参考資料
+
+![image](https://user-images.githubusercontent.com/14885863/48684164-c9cc7480-ebf3-11e8-92b3-a85c321d1771.png)
+
+VT100 のエスケープシーケンスは以下のサイトを参考にしました。
+
+ - [VT100のエスケープシーケンス (BK class)](http://bkclass.web.fc2.com/doc_vt100.html)
+ - [対応制御シーケンス - Tera Term ヘルプ 目次 (Tera Term Home Page)](https://ttssh2.osdn.jp/manual/ja/about/ctrlseq.html)
+ - [Chapter 3 Programmer Information - VT100 User Guide (VT100.net)](https://vt100.net/docs/vt100-ug/chapter3.html)
+ - [ANSI/VT100 Terminal Control Escape Sequences (termsys.demon.co.uk)](http://www.termsys.demon.co.uk/vtansi.htm)
+ - [VT100 escape codes](https://www.csie.ntu.edu.tw/~r92094/c++/VT100.html)
+ - [ANSI Escape sequences - VT100 / VT52](http://ascii-table.com/ansi-escape-sequences-vt-100.php)
