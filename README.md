@@ -10,3 +10,4 @@ Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 ※ブザーは Wio Terminal のものを使います。  
 ※LED は Wio Terminal のものを使います。  
 ※ボタンや 5 方向スイッチも認識します。  
+※困った事があったら [STM32 版](https://github.com/ht-deko/vt100_stm32) を参考にすると解決するかもです。  
