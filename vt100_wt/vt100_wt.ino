@@ -165,7 +165,7 @@ uint8_t tabs[SC_W];          // タブ位置バッファ
 
 PROGMEM enum class em {NONE,  ES, CSI, CSI2, LSC, G0S, G1S};
 PROGMEM uint8_t defaultMode = 0b00001000;
-PROGMEM uint8_t defaultModeEx = 0b0000000001000000;
+PROGMEM uint16_t defaultModeEx = 0b0000000001000000;
 PROGMEM const union ATTR defaultAttr = {0b00000000};
 PROGMEM const union COLOR defaultColor = {(clBlack << 4) | clWhite}; // back, fore
 
@@ -337,7 +337,7 @@ void dispCursor(bool forceupdate) {
 void sc_updateLine(uint16_t ln) {
   uint8_t c;
   uint8_t dt;
-  uint16_t buf[2][SP_W];
+//uint16_t buf[2][SP_W]; // Need Debug
   uint16_t cnt, idx;
   union ATTR a;
   union COLOR l;
@@ -357,13 +357,14 @@ void sc_updateLine(uint16_t ln) {
       bool prev = (a.Bits.Underline && (i == MAX_CH_Y));
       for (uint16_t j = 0; j < CH_W; j++) {
         bool pset = dt & (0x80 >> j);
-        buf[i & 1][cnt] = (pset || prev) ? fore : back;
+//      buf[i & 1][cnt] = (pset || prev) ? fore : back; // Need Debug
+        tft.pushColor((pset || prev) ? fore : back);    // pushColors() の挙動がおかしいので pushColor()で代替
         if (a.Bits.Bold)
           prev = pset;
         cnt++;
       }
     }
-    tft.pushColors(buf[i & 1], SP_W, true);
+//  tft.pushColors(buf[i & 1], SP_W, true);  // Need Debug
   }
 }
 
