@@ -50,10 +50,10 @@ uint8_t* fontTop;
 #define CH_H    8                       // フォント縦サイズ
 
 // スクリーン管理用
-#define SC_W    53                      // キャラクタスクリーン横サイズ
-#define SC_H    30                      // キャラクタスクリーン縦サイズ
-uint16_t M_TOP = 0;                     // 上マージン行
-uint16_t M_BOTTOM = SC_H - 1;           // 下マージン行
+#define RSP_W   320   // 実ピクセルスクリーン横サイズ
+#define RSP_H   240   // 実ピクセルスクリーン縦サイズ
+#define SC_W    53    // キャラクタスクリーン横サイズ (< 53)
+#define SC_H    30    // キャラクタスクリーン縦サイズ (< 30)
 
 // 座標やサイズのプレ計算
 PROGMEM const uint16_t SCSIZE   = SC_W * SC_H;  // キャラクタスクリーンサイズ
@@ -65,6 +65,12 @@ PROGMEM const uint16_t MAX_SC_X = SC_W - 1;     // キャラクタスクリー�
 PROGMEM const uint16_t MAX_SC_Y = SC_H - 1;     // キャラクタスクリーン最大縦位置
 PROGMEM const uint16_t MAX_SP_X = SP_W - 1;     // ピクセルスクリーン最大横位置
 PROGMEM const uint16_t MAX_SP_Y = SP_H - 1;     // ピクセルスクリーン最大縦位置
+PROGMEM const uint16_t MARGIN_LEFT = (RSP_W - SP_W) / 2; // 左マージン
+PROGMEM const uint16_t MARGIN_TOP  = (RSP_H - SP_H) / 2; // 上マージン
+
+// スクロール有効行
+uint16_t M_TOP    = 0;                  // スクロール行上限
+uint16_t M_BOTTOM = MAX_SC_Y;           // スクロール行下限
 
 // 文字アトリビュート用
 struct TATTR {
@@ -179,6 +185,22 @@ bool isDECPrivateMode = false; // DEC Private Mode (<ESC> [ ?)
 union MODE mode = {defaultMode};
 union MODE_EX mode_ex = {defaultModeEx};
 
+/********************************************
+キーボードと Wio Terminal のボタンとスイッチの対応
++------------+--------------+-----------+
+| キーボード | Wio Terminal | ESC SEQ   |
++------------+--------------+-----------+
+| [F3]       | WIO_KEY_C    | [ESC] [ P |
+| [F4]       | WIO_KEY_B    | [ESC] [ Q |
+| [F5]       | WIO_KEY_A    | [ESC] [ R |
+| [UP]       | WIO_5S_UP    | [ESC] [ A |
+| [DOWN]     | WIO_5S_DOWN  | [ESC] [ B |
+| [RIGHT]    | WIO_5S_RIGHT | [ESC] [ C |
+| [LEFT]     | WIO_5S_LEFT  | [ESC] [ D |
+| [ENTER]    | WIO_5S_PRESS | [CR]      |
++------------+--------------+-----------+
+********************************************/
+
 // スイッチ情報
 PROGMEM const int SW_PORT[5] = {WIO_5S_UP, WIO_5S_DOWN, WIO_5S_RIGHT, WIO_5S_LEFT, WIO_5S_PRESS}; 
 PROGMEM const String SW_CMD[5] = {"\e[A", "\e[B", "\e[C", "\e[D", "\r"}; 
@@ -282,8 +304,8 @@ void sc_updateChar(uint16_t x, uint16_t y) {
   uint16_t xx = x * CH_W;
   uint16_t yy = y * CH_H;
 
-  tft.setAddrWindow(xx, yy, CH_W, CH_H);
   tft.startWrite();
+  tft.setAddrWindow(xx + MARGIN_LEFT, yy + MARGIN_TOP, CH_W, CH_H);
   for (uint8_t i = 0; i < CH_H; i++) {
     bool prev = (a.Bits.Underline && (i == MAX_CH_Y));
     for (uint8_t j = 0; j < CH_W; j++) {
@@ -303,8 +325,8 @@ void drawCursor(uint16_t x, uint16_t y) {
   uint16_t xx = x * CH_W;
   uint16_t yy = y * CH_H;
   
-  tft.setAddrWindow(xx, yy, CH_W, CH_H);
   tft.startWrite();
+  tft.setAddrWindow(xx + MARGIN_LEFT, yy + MARGIN_TOP, CH_W, CH_H);
   for (uint8_t i = 0; i < CH_H; i++) {
     for (uint8_t j = 0; j < CH_W; j++)
       tft.pushColor(ILI9341_WHITE);
@@ -337,7 +359,7 @@ void dispCursor(bool forceupdate) {
 void sc_updateLine(uint16_t ln) {
   uint8_t c;
   uint8_t dt;
-//uint16_t buf[2][SP_W]; // Need Debug
+  uint16_t buf[2][SP_W]; // ピクセルスクリーン横サイズ
   uint16_t cnt, idx;
   union ATTR a;
   union COLOR l;
@@ -357,14 +379,14 @@ void sc_updateLine(uint16_t ln) {
       bool prev = (a.Bits.Underline && (i == MAX_CH_Y));
       for (uint16_t j = 0; j < CH_W; j++) {
         bool pset = dt & (0x80 >> j);
-//      buf[i & 1][cnt] = (pset || prev) ? fore : back; // Need Debug
-        tft.pushColor((pset || prev) ? fore : back);    // pushColors() の挙動がおかしいので pushColor()で代替
+        buf[i & 1][cnt] = (pset || prev) ? fore : back; // Need Debug
+//        tft.pushColor((pset || prev) ? fore : back);    // pushColors() の挙動がおかしいので pushColor()で代替
         if (a.Bits.Bold)
           prev = pset;
         cnt++;
       }
     }
-//  tft.pushColors(buf[i & 1], SP_W, true);  // Need Debug
+    tft.pushColors((uint16_t*)buf[i & 1], SP_W, true);  // Need Debug
   }
 }
 
@@ -405,10 +427,13 @@ void scroll() {
       attrib[idx2] = defaultAttr.value;
       colors[idx2] = defaultColor.value;
     }
-    tft.setAddrWindow(0, M_TOP * CH_H, SP_W, ((M_BOTTOM + 1) * CH_H) - (M_TOP * CH_H));
-    tft.startWrite();
+    tft.startWrite();  
+    tft.setAddrWindow(MARGIN_LEFT, M_TOP * CH_H + MARGIN_TOP, SP_W, ((M_BOTTOM + 1) * CH_H) - (M_TOP * CH_H));
     for (uint8_t y = M_TOP; y <= M_BOTTOM; y++)
       sc_updateLine(y);
+//    for (uint8_t y = M_TOP; y <= M_BOTTOM; y++)
+//      for (uint8_t dx = 0; dx <= 53; dx++)
+//        sc_updateChar(dx, y);
     tft.endWrite();  
     YP = M_BOTTOM;
   }
@@ -852,9 +877,8 @@ void cursorPosition(uint8_t y, uint8_t x) {
 
 // 画面を再描画
 void refreshScreen() {
-
-  tft.setAddrWindow(0, 0, SP_W, SP_H);
   tft.startWrite();
+  tft.setAddrWindow(MARGIN_LEFT, MARGIN_TOP, SP_W, SP_H);
   for (uint8_t i = 0; i < SC_H; i++)
     sc_updateLine(i);
   tft.endWrite();  
@@ -893,8 +917,8 @@ void eraseInDisplay(uint8_t m) {
     memset(&screen[idx], 0x00, n);
     memset(&attrib[idx], defaultAttr.value, n);
     memset(&colors[idx], defaultColor.value, n);
-    tft.setAddrWindow(0, sl * CH_H, SP_W, ((el + 1) * CH_H) - (sl * CH_H));
     tft.startWrite();
+    tft.setAddrWindow(MARGIN_LEFT, sl * CH_H + MARGIN_TOP, SP_W, ((el + 1) * CH_H) - (sl * CH_H));
     for (uint8_t i = sl; i <= el; i++)
       sc_updateLine(i);
     tft.endWrite();  
@@ -928,8 +952,8 @@ void eraseInLine(uint8_t m) {
     memset(&screen[slp], 0x00, n);
     memset(&attrib[slp], defaultAttr.value, n);
     memset(&colors[slp], defaultColor.value, n);
-    tft.setAddrWindow(0, YP * CH_H, SP_W, ((YP + 1) * CH_H) - (YP * CH_H));
     tft.startWrite();
+    tft.setAddrWindow(MARGIN_LEFT, YP * CH_H + MARGIN_TOP, SP_W, ((YP + 1) * CH_H) - (YP * CH_H));
     sc_updateLine(YP);
     tft.endWrite();  
   }
@@ -955,8 +979,8 @@ void insertLine(uint8_t v) {
   memset(&screen[idx], 0x00, n);
   memset(&attrib[idx], defaultAttr.value, n);
   memset(&colors[idx], defaultColor.value, n);
-  tft.setAddrWindow(0, YP * CH_H, SP_W, ((M_BOTTOM + 1) * CH_H) - (YP * CH_H));
   tft.startWrite();
+  tft.setAddrWindow(MARGIN_LEFT, YP * CH_H + MARGIN_TOP, SP_W, ((M_BOTTOM + 1) * CH_H) - (YP * CH_H));
   for (uint8_t y = YP; y <= M_BOTTOM; y++)
     sc_updateLine(y);
   tft.endWrite();  
@@ -983,8 +1007,8 @@ void deleteLine(uint8_t v) {
   memset(&screen[idx3], 0x00, n);
   memset(&attrib[idx3], defaultAttr.value, n);
   memset(&colors[idx3], defaultColor.value, n);
-  tft.setAddrWindow(0, YP * CH_H, SP_W, ((M_BOTTOM + 1) * CH_H) - (YP * CH_H));
   tft.startWrite();
+  tft.setAddrWindow(MARGIN_LEFT, YP * CH_H + MARGIN_TOP, SP_W, ((M_BOTTOM + 1) * CH_H) - (YP * CH_H));
   for (uint8_t y = YP; y <= M_BOTTOM; y++)
     sc_updateLine(y);
   tft.endWrite();  
@@ -1340,11 +1364,11 @@ void doubleWidthLine() {
 
 // DECALN (Screen Alignment Display): 画面を文字‘E’で埋める
 void screenAlignmentDisplay() {
-  tft.setAddrWindow(0, 0, SP_W, SP_H);
   memset(screen, 0x45, SCSIZE);
   memset(attrib, defaultAttr.value, SCSIZE);
   memset(colors, defaultColor.value, SCSIZE);
   tft.startWrite();
+  tft.setAddrWindow(MARGIN_LEFT, MARGIN_TOP, SP_W, SP_H);
   for (uint8_t y = 0; y < SC_H; y++)
     sc_updateLine(y);
   tft.endWrite();  
