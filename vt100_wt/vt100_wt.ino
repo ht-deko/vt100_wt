@@ -340,10 +340,11 @@ void dispCursor(bool forceupdate) {
     return;
   if (!forceupdate)
     isShowCursor = !isShowCursor;
+  if (isShowCursor)
+    drawCursor(XP, YP);
   if (lastShowCursor || (forceupdate && isShowCursor))
     sc_updateChar(p_XP, p_YP);
   if (isShowCursor) {
-    drawCursor(XP, YP);
     p_XP = XP;
     p_YP = YP;
   }
@@ -352,6 +353,7 @@ void dispCursor(bool forceupdate) {
   lastShowCursor = isShowCursor;
   needCursorUpdate = false;
 }
+
 
 // 指定行をTFT画面に反映
 // 引数
