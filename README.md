@@ -14,6 +14,9 @@ Arduino Wio Terminal (SAMD) 用の VT100 エミュレータです。
 ※ボタンや 5 方向スイッチも認識します。  
 ※困った事があったら [STM32 版](https://github.com/ht-deko/vt100_stm32) を参考にすると解決するかもです。  
 
+## 必要なソフトウェア
+* [SAMD51 Interrupt Timer library](https://github.com/Dennis-van-Gils/SAMD51_InterruptTimer "Title")
+
 ## シリアルバッファのサイズ調整
 
 デフォルトの 256 だと 9600bps で描画が追い付かない事があるためシリアルバッファを増やします (RingBuffer.h)。　
